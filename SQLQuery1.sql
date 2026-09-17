@@ -1,0 +1,92 @@
+﻿CREATE DATABASE QLBanHang1;
+GO
+
+USE QLBanHang1;
+GO
+
+CREATE TABLE KHACHHANG (
+    MaKH CHAR(10) PRIMARY KEY,
+    HoTen NVARCHAR(50),
+    DChi NVARCHAR(100),
+    SoDT VARCHAR(15),
+    NgaySinh DATE,
+    NgayDK DATE,
+    DoanhSo DECIMAL(18, 2)
+);
+CREATE TABLE NHANVIEN (
+    MaNV CHAR(10) PRIMARY KEY,
+    HoTenNV NVARCHAR(50),
+    NgayVaoLam DATE,
+    SoDTNV VARCHAR(15)
+);
+CREATE TABLE SANPHAM (
+    MaSP CHAR(10) PRIMARY KEY,
+    TenSP NVARCHAR(100),
+    DVT NVARCHAR(10),
+    NuocSX NVARCHAR(50)
+);
+CREATE TABLE HOADON (
+    SoHD CHAR(10) PRIMARY KEY,
+    NgayHD DATE,
+    MaKH CHAR(10),
+    MaNV CHAR(10),
+    TriGia DECIMAL(18, 2),
+    FOREIGN KEY (MaKH) REFERENCES KHACHHANG(MaKH),
+    FOREIGN KEY (MaNV) REFERENCES NHANVIEN(MaNV)
+);
+CREATE TABLE CTHD (
+    SoHD CHAR(10),
+    MaSP CHAR(10),
+    SoLuong INT CHECK (SoLuong > 0),
+    DonGia DECIMAL(18, 2) CHECK (DonGia > 0),
+    PRIMARY KEY (SoHD, MaSP),
+    FOREIGN KEY (SoHD) REFERENCES HOADON(SoHD),
+    FOREIGN KEY (MaSP) REFERENCES SANPHAM(MaSP)
+);
+
+INSERT INTO KHACHHANG(MaKH, HoTen, DChi, SoDT, NgaySinh, NgayDK, DoanhSo)
+VALUES 
+('KH01', N'Nguyễn Văn A', N'Hà Nội', '0912345678', '1990-01-01', '2022-12-01', 340000),
+('KH02', N'Lê Thị B', N'Hải Phòng', '0934567890', '1985-05-15', '2023-01-20', 60000),
+('KH03', N'Trần Văn C', N'Đà Nẵng', '0987654321', '1992-07-20', '2023-06-01', 300000);
+
+INSERT INTO NHANVIEN (MaNV, HoTenNV, NgayVaoLam, SoDTNV)
+VALUES 
+('NV01', N'Phạm Thị Hoa', '2020-03-15', '0901122334'),
+('NV02', N'Ngô Văn Bình', '2021-08-01', '0911223344');
+
+INSERT INTO SANPHAM (MaSP, TenSP, DVT, NuocSX)
+VALUES 
+('SP01', N'Bánh quy', N'Hộp', N'Việt Nam'),
+('SP02', N'Sữa tươi', N'Chai', N'Hà Lan'),
+('SP03', N'Kẹo dẻo', N'Túi', N'Mỹ'),
+('SP04', N'Trà xanh', N'Chai', N'Nhật Bản');
+
+INSERT INTO HOADON (SoHD, NgayHD, MaKH, MaNV, TriGia)
+VALUES 
+('HD01', '2023-01-10', 'KH01', 'NV01', 200000),
+('HD02', '2023-03-15', 'KH02', 'NV01', 60000),
+('HD03', '2023-06-20', 'KH03', 'NV02', 300000),
+('HD04', '2023-10-05', 'KH01', 'NV01', 40000);
+
+INSERT INTO CTHD (SoHD, MaSP, SoLuong, DonGia)
+VALUES 
+('HD01', 'SP01', 5, 20000),   -- 100.000
+('HD01', 'SP02', 2, 50000),   -- 100.000
+('HD02', 'SP01', 3, 20000),   -- 60.000
+('HD03', 'SP03', 10, 30000),  -- 300.000
+('HD04', 'SP01', 2, 20000);   -- 40.000
+
+
+SELECT * 
+FROM SANPHAM
+WHERE MaSP not in (SELECT MaSP
+				   FROM CTHD)
+
+SELECT A.MaSP, TenSP, NuocSX, Sum(SoLuong) as TongSLBan, Sum(SoLuong*DonGia) as TongDoanhThu
+FROM SANPHAM A, CTHD B, HOADON C
+WHERE A.MaSP = B.MaSP and B.SoHD = C.SoHD and YEAR(NgayHD) = 2023
+GROUP BY A.MaSP, TenSP, NuocSX
+HAVING Sum(SoLuong) >= ALL (SELECT SUM(SoLuong)
+							FROM CTHD
+							GROUP BY MaSP)
